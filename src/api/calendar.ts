@@ -2,7 +2,7 @@
  * Calendar API — events, meetings, and availability.
  */
 
-import { owaGet, owaPost, owaPatch, owaDelete } from './client.js';
+import { owaGet, owaPost, owaPatch, owaDelete, graphPost } from './client.js';
 import type { ODataResponse } from './mail.js';
 import type { Recipient } from './mail.js';
 
@@ -13,6 +13,11 @@ import type { Recipient } from './mail.js';
 export interface DateTimeTimeZone {
   DateTime: string;
   TimeZone: string;
+}
+
+export interface ProposedNewTime {
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
 }
 
 export interface Attendee {
@@ -321,7 +326,25 @@ export async function deleteEvent(id: string): Promise<void> {
 
 export type EventResponse = 'accept' | 'decline' | 'tentativelyAccept';
 
-export async function respondToEvent(id: string, response: EventResponse, comment?: string): Promise<void> {
+export async function respondToEvent(
+  id: string,
+  response: EventResponse,
+  comment?: string,
+  proposedNewTime?: ProposedNewTime,
+): Promise<void> {
+  if (proposedNewTime) {
+    if (response === 'accept') {
+      throw new Error('A proposed time requires a decline or tentative acceptance.');
+    }
+
+    await graphPost<void>(`/events/${id}/${response}`, {
+      comment: comment ?? '',
+      sendResponse: true,
+      proposedNewTime,
+    });
+    return;
+  }
+
   await owaPost(`/events/${id}/${response}`, {
     Comment: comment ?? '',
     SendResponse: true,

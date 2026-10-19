@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- The `outlook_respond_to_event` tool now sends proposed meeting times with tentative acceptance or decline.
+
 ## [0.5.0] - 2026-10-01
 
 ### Added

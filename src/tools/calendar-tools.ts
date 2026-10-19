@@ -47,6 +47,16 @@ const recurrenceSchema = z.object({
   }).describe('When the recurring series stops'),
 }).describe('Make the event a repeating series (maps to Microsoft Graph patternedRecurrence).');
 
+const proposedDateTimeZoneSchema = z.object({
+  date_time: z.string().min(1).describe('Date and time in ISO 8601 format'),
+  time_zone: z.string().min(1).describe('Time zone for the date and time'),
+});
+
+const proposedNewTimeSchema = z.object({
+  start: proposedDateTimeZoneSchema,
+  end: proposedDateTimeZoneSchema,
+});
+
 type RecurrenceArg = z.infer<typeof recurrenceSchema>;
 
 function toRecurrenceInput(r: RecurrenceArg): RecurrenceInput {
@@ -287,14 +297,29 @@ export function registerCalendarTools(server: McpServer): void {
   // ── outlook_respond_to_event ─────────────────────────────────────────────
   server.tool(
     'outlook_respond_to_event',
-    'Accept, decline, or tentatively accept a meeting invitation.',
+    'Accept, decline, or tentatively accept a meeting invitation. Include proposed_new_time to propose an alternative time with a decline or tentative acceptance.',
     {
       id: z.string().describe('Event ID'),
-      response: z.enum(['accept', 'decline', 'tentativelyAccept']).describe('Your response'),
+      response: z.enum(['accept', 'decline', 'tentativelyAccept'])
+        .describe('Your response. Use decline or tentativelyAccept when proposing a new time.'),
       comment: z.string().optional().describe('Optional response message'),
+      proposed_new_time: proposedNewTimeSchema.optional()
+        .describe('Alternative start and end times to propose with this response'),
     },
-    async ({ id, response, comment }) => {
-      await respondToEvent(id, response as EventResponse, comment);
+    async ({ id, response, comment, proposed_new_time }) => {
+      const proposedNewTime = proposed_new_time
+        ? {
+            start: {
+              dateTime: proposed_new_time.start.date_time,
+              timeZone: proposed_new_time.start.time_zone,
+            },
+            end: {
+              dateTime: proposed_new_time.end.date_time,
+              timeZone: proposed_new_time.end.time_zone,
+            },
+          }
+        : undefined;
+      await respondToEvent(id, response as EventResponse, comment, proposedNewTime);
       return { content: [{ type: 'text', text: `Meeting response sent: ${response}.` }] };
     },
   );

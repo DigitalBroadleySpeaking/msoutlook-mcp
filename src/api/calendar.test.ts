@@ -5,9 +5,10 @@ vi.mock('./client.js', () => ({
   owaPost: vi.fn(),
   owaPatch: vi.fn(),
   owaDelete: vi.fn(),
+  graphPost: vi.fn(),
 }));
 
-import { owaGet, owaPost, owaPatch, owaDelete } from './client.js';
+import { owaGet, owaPost, owaPatch, owaDelete, graphPost } from './client.js';
 import {
   listEvents, getEvent, createEvent, updateEvent, deleteEvent, respondToEvent,
   searchEvents, listCalendars, getSchedule, findMeetingTimes, cancelEvent, forwardEvent,
@@ -18,6 +19,7 @@ const mGet = vi.mocked(owaGet);
 const mPost = vi.mocked(owaPost);
 const mPatch = vi.mocked(owaPatch);
 const mDelete = vi.mocked(owaDelete);
+const mGraphPost = vi.mocked(graphPost);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -243,6 +245,45 @@ describe('respondToEvent', () => {
     mPost.mockResolvedValue(undefined);
     await respondToEvent('e1', 'decline');
     expect(mPost).toHaveBeenCalledWith('/events/e1/decline', { Comment: '', SendResponse: true });
+  });
+
+  it('sends a proposed time through Graph with the selected response', async () => {
+    mGraphPost.mockResolvedValue(undefined);
+    const proposedNewTime = {
+      start: { dateTime: '2026-10-21T09:30:00', timeZone: 'UTC' },
+      end: { dateTime: '2026-10-21T10:30:00', timeZone: 'UTC' },
+    };
+
+    await respondToEvent('e1', 'tentativelyAccept', 'Could we move this?', proposedNewTime);
+
+    expect(mGraphPost).toHaveBeenCalledWith('/events/e1/tentativelyAccept', {
+      comment: 'Could we move this?',
+      sendResponse: true,
+      proposedNewTime,
+    });
+    expect(mPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a proposed time with an accept response', async () => {
+    const proposedNewTime = {
+      start: { dateTime: '2026-10-21T09:30:00', timeZone: 'UTC' },
+      end: { dateTime: '2026-10-21T10:30:00', timeZone: 'UTC' },
+    };
+
+    await expect(respondToEvent('e1', 'accept', undefined, proposedNewTime))
+      .rejects.toThrow('A proposed time requires a decline or tentative acceptance.');
+    expect(mGraphPost).not.toHaveBeenCalled();
+  });
+
+  it('propagates Graph errors for proposed times', async () => {
+    mGraphPost.mockRejectedValue(new Error('HTTP 403 Forbidden: missing permission'));
+    const proposedNewTime = {
+      start: { dateTime: '2026-10-21T09:30:00', timeZone: 'UTC' },
+      end: { dateTime: '2026-10-21T10:30:00', timeZone: 'UTC' },
+    };
+
+    await expect(respondToEvent('e1', 'decline', 'Could we move this?', proposedNewTime))
+      .rejects.toThrow('HTTP 403 Forbidden: missing permission');
   });
 });
 

@@ -121,7 +121,7 @@ Then run `outlook_login` from your MCP client. On first use a browser opens so y
 | `outlook_create_event` | Create a meeting or appointment, optionally recurring with a reminder |
 | `outlook_update_event` | Update an existing event, including recurrence and reminder |
 | `outlook_delete_event` | Delete an event |
-| `outlook_respond_to_event` | Accept, decline, or tentatively accept an invite |
+| `outlook_respond_to_event` | Accept, decline, or tentatively accept an invite, with an optional proposed time |
 | `outlook_search_events` | Search events by keyword |
 | `outlook_list_calendars` | List all calendars |
 | `outlook_get_schedule` | Free/busy schedule (busy blocks + working hours) for people over a window |
@@ -133,6 +133,7 @@ Then run `outlook_login` from your MCP client. On first use a browser opens so y
 
 - **Recurrence.** `outlook_create_event` and `outlook_update_event` take an optional `recurrence` object that maps to Microsoft Graph's `patternedRecurrence` (a `pattern` plus a `range`). Supported patterns: `daily`, `weekly` (with `days_of_week`), `absoluteMonthly` (`day_of_month`), `relativeMonthly` (e.g. last Friday via `index` + `days_of_week`), `absoluteYearly` (`month` + `day_of_month`), and `relativeYearly`. Set `interval` for "every N" (e.g. every 3 weeks). The `range` ends with `endDate` (`end_date`), `numbered` (`count`), or `noEnd`, and carries the recurrence `time_zone`. `range.start_date` defaults to the event's start date.
 - **Reminders.** Use `reminder_minutes_before_start` and `is_reminder_on`. Graph and Outlook support only **one** reminder per event, so you cannot set, for example, both a one-month and a one-week reminder on a single event. Mirror the same event into separate calendars if you need several lead times.
+- **Proposing a new time.** Add `proposed_new_time` with `start` and `end`, each containing `date_time` and `time_zone`. The response must be `decline` or `tentativelyAccept`, and the event must allow proposals. The Graph token needs `Calendars.ReadWrite`. The organizer updates the event after accepting the proposal.
 - **Date window.** `outlook_list_events` uses Graph's `calendarView`, so a `start_date`/`end_date` window genuinely scopes the results and recurring series are expanded into individual instances. When only `start_date` is given, the window runs a week forward from it.
 - **Mirroring personal events.** `show_as` (`free`/`tentative`/`busy`/`oof`/`workingElsewhere`), `categories`, and `is_private` help when copying personal events into a work calendar.
 
