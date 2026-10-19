@@ -208,6 +208,7 @@ Cookie import is a best effort optimisation. If it cannot run (e.g. no matching 
 | `MSOUTLOOK_CHROME_PROFILE` | Pin a specific Chrome profile dir for cookie import (e.g. `Profile 1`). Defaults to `Default`. |
 | `MSOUTLOOK_EDGE_PROFILE` | Pin a specific Edge profile dir for cookie import (e.g. `Profile 1`). Defaults to `Default`. |
 | `MSOUTLOOK_SKIP_COOKIE_IMPORT=true` | Skip importing SSO cookies from your real browser (avoids the one time Keychain/keyring prompt). You'll sign in once manually in the browser; the persistent profile then remembers the session. |
+| `MSOUTLOOK_LOGIN_TIMEOUT_MS=1200000` | How long the visible login window stays open, in milliseconds. Defaults to 5 minutes (`300000`). |
 
 ## Troubleshooting
 

@@ -54,7 +54,13 @@ export const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 export const TOKEN_REFRESH_BUFFER_MS = 55 * 60 * 1000;
 
 /** How long to wait for user to complete browser login (ms). */
-export const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
+const configuredLoginTimeout = Number(process.env.MSOUTLOOK_LOGIN_TIMEOUT_MS);
+
+export const LOGIN_TIMEOUT_MS =
+  Number.isFinite(configuredLoginTimeout) && configuredLoginTimeout > 0
+    ? configuredLoginTimeout
+    : DEFAULT_LOGIN_TIMEOUT_MS;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HTTP
