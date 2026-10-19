@@ -49,6 +49,38 @@ function owaAccessTokenPresent(): boolean {
   );
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+type TokenPage = Pick<import('playwright').Page, 'isClosed' | 'evaluate'>;
+
+/**
+ * Poll every open page until an Outlook access token appears.
+ * A single waitForFunction call rejects as soon as the login page navigates,
+ * which is what happens when the password step moves on to MFA.
+ */
+export async function waitForOwaAccessToken<T extends TokenPage>(
+  context: { pages: () => T[] },
+  timeoutMs: number,
+  intervalMs = 500,
+): Promise<T | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const page of context.pages()) {
+      if (page.isClosed()) continue;
+      const ready = await Promise.resolve()
+        .then(() => page.evaluate(owaAccessTokenPresent))
+        .catch(() => false);
+      if (ready) return page;
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await sleep(Math.min(intervalMs, remaining));
+  }
+  return null;
+}
+
 /**
  * Determine the Playwright channel to use.
  *
@@ -351,6 +383,10 @@ export async function headedLogin(clearCookiesFirst = false): Promise<LoginResul
   try {
     context = await launchContext(profileDir, false, channel);
     context.on('close', () => { browserClosed = true; });
+    // Microsoft login calls window.close() when the MFA prompt opens.
+    await context.addInitScript(() => {
+      window.close = () => {};
+    });
 
     // For force_new: clear browser cookies before importing fresh ones
     if (clearCookiesFirst) {
@@ -363,14 +399,16 @@ export async function headedLogin(clearCookiesFirst = false): Promise<LoginResul
     await importMicrosoftCookies(context, channel);
 
     const authenticated = await waitForOwaAuth(context, LOGIN_TIMEOUT_MS);
-    const page = context.pages()[0];
+    let page = context.pages().find(p => !p.isClosed());
 
     if (!authenticated) {
-      // Login redirect — user needs to sign in manually; wait for them
+      // Login redirect. Keep polling through password, MFA, and the redirect back to Outlook.
       logger.info('Waiting for you to complete sign-in in the browser...');
-      if (page) {
-        await page.waitForFunction(owaAccessTokenPresent, { timeout: LOGIN_TIMEOUT_MS });
+      const signedIn = await waitForOwaAccessToken(context, LOGIN_TIMEOUT_MS);
+      if (!signedIn) {
+        throw new Error(`Sign-in was not completed within ${Math.round(LOGIN_TIMEOUT_MS / 1000)}s`);
       }
+      page = signedIn;
     }
 
     // Session authenticated — show progress overlay while we save
