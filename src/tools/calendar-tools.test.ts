@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { z } from 'zod';
 import * as cal from '../api/calendar.js';
 import { registerCalendarTools } from './calendar-tools.js';
 
@@ -112,7 +113,39 @@ describe('create/update/delete/respond', () => {
   it('respond_to_event', async () => {
     vi.mocked(cal.respondToEvent).mockResolvedValue(undefined as any);
     expect(text(await tools.get('outlook_respond_to_event')!.handler({ id: 'e', response: 'accept', comment: 'ok' }))).toContain('accept');
-    expect(cal.respondToEvent).toHaveBeenCalledWith('e', 'accept', 'ok');
+    expect(cal.respondToEvent).toHaveBeenCalledWith('e', 'accept', 'ok', undefined);
+  });
+
+  it('respond_to_event maps a proposed time to the calendar API', async () => {
+    vi.mocked(cal.respondToEvent).mockResolvedValue(undefined as any);
+
+    await tools.get('outlook_respond_to_event')!.handler({
+      id: 'e',
+      response: 'tentativelyAccept',
+      comment: 'Could we move this?',
+      proposed_new_time: {
+        start: { date_time: '2026-10-21T09:30:00', time_zone: 'UTC' },
+        end: { date_time: '2026-10-21T10:30:00', time_zone: 'UTC' },
+      },
+    });
+
+    expect(cal.respondToEvent).toHaveBeenCalledWith('e', 'tentativelyAccept', 'Could we move this?', {
+      start: { dateTime: '2026-10-21T09:30:00', timeZone: 'UTC' },
+      end: { dateTime: '2026-10-21T10:30:00', timeZone: 'UTC' },
+    });
+  });
+
+  it('respond_to_event requires complete proposed time fields', () => {
+    const shape = tools.get('outlook_respond_to_event')!.schema;
+    const parsed = z.object(shape).safeParse({
+      id: 'e',
+      response: 'tentativelyAccept',
+      proposed_new_time: {
+        start: { date_time: '2026-10-21T09:30:00', time_zone: 'UTC' },
+      },
+    });
+
+    expect(parsed.success).toBe(false);
   });
 });
 

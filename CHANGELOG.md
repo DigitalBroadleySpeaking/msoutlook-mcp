@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0-team.1] - 2026-10-22
+
+### Changed
+- This fork now tracks upstream 0.6.0. The configurable login-window timeout and the MFA login-window behavior from 0.5.0-team.2 stay in place.
+
+## [0.6.0] - 2026-10-19
+
+### Added
+- Meeting responses can now include an alternative time when they are tentatively accepted or declined.
+- The organizer updates the meeting after accepting the proposal.
+
 ## [0.5.0] - 2026-10-01
 
 ### Added
@@ -59,7 +70,9 @@ All notable changes to this project are documented here. The format is based on
 
 See the [GitHub releases](https://github.com/shayanline/msoutlook-mcp/releases) for earlier history.
 
-[Unreleased]: https://github.com/shayanline/msoutlook-mcp/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/DigitalBroadleySpeaking/msoutlook-mcp/compare/v0.6.0-team.1...HEAD
+[0.6.0-team.1]: https://github.com/DigitalBroadleySpeaking/msoutlook-mcp/compare/v0.5.0-team.2...v0.6.0-team.1
+[0.6.0]: https://github.com/shayanline/msoutlook-mcp/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/shayanline/msoutlook-mcp/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/shayanline/msoutlook-mcp/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/shayanline/msoutlook-mcp/compare/v0.4.0...v0.4.1
